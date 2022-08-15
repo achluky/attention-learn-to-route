@@ -113,7 +113,6 @@ if __name__ == "__main__":
       opts = parser.parse_args()
 
       opts.__dict__
-      pass
       
       assert opts.filename is None or (len(opts.problems) == 1 and len(opts.graph_sizes) == 1), \
             "Can only specify filename when generating a single dataset"
@@ -136,35 +135,34 @@ if __name__ == "__main__":
 
       for problem, distributions in problems.items():
             for distribution in distributions or [None]:
-            for graph_size in opts.graph_sizes:
+                  for graph_size in opts.graph_sizes:
+                        datadir = os.path.join(opts.data_dir, problem)
+                        os.makedirs(datadir, exist_ok=True)
 
-                  datadir = os.path.join(opts.data_dir, problem)
-                  os.makedirs(datadir, exist_ok=True)
+                        if opts.filename is None:
+                              filename = os.path.join(datadir, "{}{}{}_{}_seed{}.pkl".format(
+                              problem,
+                              "_{}".format(distribution) if distribution is not None else "",
+                              graph_size, opts.name, opts.seed))
+                        else:
+                              filename = check_extension(opts.filename)
 
-                  if opts.filename is None:
-                        filename = os.path.join(datadir, "{}{}{}_{}_seed{}.pkl".format(
-                        problem,
-                        "_{}".format(distribution) if distribution is not None else "",
-                        graph_size, opts.name, opts.seed))
-                  else:
-                        filename = check_extension(opts.filename)
+                        assert opts.f or not os.path.isfile(check_extension(filename)), \
+                              "File already exists! Try running with -f option to overwrite."
 
-                  assert opts.f or not os.path.isfile(check_extension(filename)), \
-                        "File already exists! Try running with -f option to overwrite."
+                        np.random.seed(opts.seed)
+                        if problem == 'tsp':
+                              dataset = generate_tsp_data(opts.dataset_size, graph_size)
+                        elif problem == 'vrp':
+                              dataset = generate_vrp_data(
+                              opts.dataset_size, graph_size)
+                        elif problem == 'pctsp':
+                              dataset = generate_pctsp_data(opts.dataset_size, graph_size)
+                        elif problem == "op":
+                              dataset = generate_op_data(opts.dataset_size, graph_size, prize_type=distribution)
+                        else:
+                              assert False, "Unknown problem: {}".format(problem)
 
-                  np.random.seed(opts.seed)
-                  if problem == 'tsp':
-                        dataset = generate_tsp_data(opts.dataset_size, graph_size)
-                  elif problem == 'vrp':
-                        dataset = generate_vrp_data(
-                        opts.dataset_size, graph_size)
-                  elif problem == 'pctsp':
-                        dataset = generate_pctsp_data(opts.dataset_size, graph_size)
-                  elif problem == "op":
-                        dataset = generate_op_data(opts.dataset_size, graph_size, prize_type=distribution)
-                  else:
-                        assert False, "Unknown problem: {}".format(problem)
+                        print(dataset[0])
 
-                  print(dataset[0])
-
-                  save_dataset(dataset, filename)
+                        save_dataset(dataset, filename)
